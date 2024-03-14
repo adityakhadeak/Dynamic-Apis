@@ -7,9 +7,23 @@ const dynamicController = async (req, res) => {
 
 
         switch (operation) {
-            case 'create':
-                // Handle create operation
+             case 'create':
+                    const { full_name, university, start_date, end_date, user_id } = column_values
+                    const createQuery = "INSERT INTO Interns (full_name, university, start_date, end_date, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING *"
+                    const createValues = [full_name, university, start_date, end_date, user_id]
+                    const createResult = await pool.query(createQuery, createValues)
+        
+                    if (createResult.rowCount == 0)
+                        return res.status(200).json({
+                            message: "Intern Not Created",
+                        });
+        
+                    res.status(200).json({
+                        message: "Intern Created Successfully",
+                        data: createResult.rows[0]
+                    });
                 break;
+                
             case 'read':
                 // Handle read operation
                 break;
