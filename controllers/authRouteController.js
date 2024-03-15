@@ -1,5 +1,7 @@
 const pool = require('../database/db.js')
-
+const {jtoken} =require('../middlewares/authorization.js')
+const jwt=require('jsonwebtoken')
+const Key = require("../database/db");
 const createUser = async (req, res) => {
 
     const { username, email, password, role_id } = req.body
@@ -44,9 +46,11 @@ const loginUser = async (req, res) => {
         return res.status(401).json({
             message:"Incorrect Password"
         })
-
+        // generate token
+       const token=jwt.sign({userId:user.id},Key,{expiresIn:"1h"})
         res.status(200).json({
-            message:"User Logged in successfully"
+            message:"User Logged in successfully",
+            token:token
         })
     } catch (error) {
         console.log(error)
