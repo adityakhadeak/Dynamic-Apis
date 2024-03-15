@@ -26,7 +26,28 @@ const dynamicController = async (req, res) => {
                 
             case 'read':
                 // Handle read operation
-                break;
+                switch (table) {
+        case 'interns':
+            const readQuery1 = "SELECT * FROM Interns";
+            const readResult1 = await pool.query(readQuery1);
+            res.status(200).json({
+                message: "Data Retrieved Successfully",
+                data: readResult1.rows
+            });
+            break;
+        case 'internshipassignments':
+            const readQuery2 = "SELECT * FROM InternshipAssignments";
+            const readResult2 = await pool.query(readQuery2);
+            res.status(200).json({
+                message: "Data Retrieved Successfully",
+                data: readResult2.rows
+            });
+            break;
+        default:
+            res.status(400).json({ message: 'Invalid table name' });
+            return;
+    }
+    break;
             case 'update':
                 // Handle update operation based on table
                 switch (table) {
