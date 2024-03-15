@@ -167,6 +167,51 @@ const dynamicController = async (req, res) => {
                 break;
             case 'delete':
                 // Handle delete operation
+                switch (table) {
+                    case 'interns':
+                        const { intern_id: internId1 } = column_values;
+                        const deleteQuery1 = "DELETE FROM Interns WHERE intern_id=$1 RETURNING *";
+                        const deleteValues1 = [internId1];
+                        try {
+
+                            if (!internId1) {
+                                throw new Error("Invalid input data");
+                            }
+                            const deleteResult1 = await pool.query(deleteQuery1, deleteValues1);
+            
+                            if (deleteResult1.rowCount == 0)
+                                throw new Error("Intern Not Found");
+            
+                            res.status(200).json({
+                                message: "Data Deleted Successfully",
+                                data: deleteResult1.rows[0]
+                            });
+                        } catch (error) {
+                            res.status(404).json({ message: error.message });
+                        }
+                        break;
+                    case 'internshipassignments':
+                        const { assignment_id } = column_values;
+                        const deleteQuery2 = "DELETE FROM InternshipAssignments WHERE assignment_id=$1 RETURNING *";
+                        const deleteValues2 = [assignment_id];
+                        try {
+                            const deleteResult2 = await pool.query(deleteQuery2, deleteValues2);
+            
+                            if (deleteResult2.rowCount == 0)
+                                throw new Error("Assignment Not Found");
+            
+                            res.status(200).json({
+                                message: "Data Deleted Successfully",
+                                data: deleteResult2.rows[0]
+                            });
+                        } catch (error) {
+                            res.status(404).json({ message: error.message });
+                        }
+                        break;
+                    default:
+                        res.status(400).json({ message: 'Invalid table' });
+                        break;
+                }
                 break;
             default:
                 res.status(400).json({ message: 'Invalid operation type' });
