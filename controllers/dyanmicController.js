@@ -1,53 +1,50 @@
-const bcrypt = require('bcrypt');
 const pool = require('../database/db.js')
 
 const dynamicController = async (req, res) => {
     try {
         const { operation, table, column_values } = req.body
         const role_id = req.user.role_id
+        if (req.user.user_id != column_values.user_id)
+            return res.status(403).json({ message: "Invalid user token" })
         switch (operation) {
-            case 'create':
-            // Handle create operation
             case 'create':
                 // Handle create operation
                 switch (table) {
                     case 'interns':
-                        if(role_id===2)
-                        {
-                        const { full_name, university, start_date, end_date, user_id } = column_values;
-                        const createQuery1 = "INSERT INTO Interns (full_name, university, start_date, end_date, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING *";
-                        const createValues1 = [full_name, university, start_date, end_date, user_id];
-                        try {
-                            const createResult1 = await pool.query(createQuery1, createValues1);
-                            if (createResult1.rowCount == 0) throw new Error("Failed to create intern");
-                            res.status(200).json({ message: "Intern Created Successfully", data: createResult1.rows[0] });
-                        } catch (error) {
-                            res.status(500).json({ message: error.message });
+                        if (role_id === 2) {
+                            const { full_name, university, start_date, end_date, user_id } = column_values;
+                            const createQuery1 = "INSERT INTO Interns (full_name, university, start_date, end_date, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING *";
+                            const createValues1 = [full_name, university, start_date, end_date, user_id];
+                            try {
+                                const createResult1 = await pool.query(createQuery1, createValues1);
+                                if (createResult1.rowCount == 0) throw new Error("Failed to create intern");
+                                res.status(200).json({ message: "Intern Created Successfully", data: createResult1.rows[0] });
+                            } catch (error) {
+                                res.status(500).json({ message: error.message });
+                            }
+                        } else {
+                            res.status(403).json({
+                                message: "Access Denied, Only intern can add internship info",
+                            });
                         }
-                    }else{
-                        res.status(403).json({
-                            message: "Access Denied, Only intern can add internship info",
-                        });
-                    }
                         break;
                     case 'internshipassignments':
-                        if(role_id===1)
-                        {
-                        const { assignment_id, intern_id, task_description, due_date } = column_values;
-                        const createQuery2 = "INSERT INTO InternshipAssignments (assignment_id, intern_id, task_description, due_date) VALUES ($1, $2, $3, $4) RETURNING *";
-                        const createValues2 = [assignment_id, intern_id, task_description, due_date];
-                        try {
-                            const createResult2 = await pool.query(createQuery2, createValues2);
-                            if (createResult2.rowCount == 0) throw new Error("Failed to create internship assignment");
-                            res.status(200).json({ message: "Internship Assignment Created Successfully", data: createResult2.rows[0] });
-                        } catch (error) {
-                            res.status(500).json({ message: error.message });
+                        if (role_id === 1) {
+                            const { intern_id, task_description, due_date, user_id } = column_values;
+                            const createQuery2 = "INSERT INTO InternshipAssignments ( intern_id, task_description, due_date) VALUES ($1, $2, $3) RETURNING *";
+                            const createValues2 = [intern_id, task_description, due_date];
+                            try {
+                                const createResult2 = await pool.query(createQuery2, createValues2);
+                                if (createResult2.rowCount == 0) throw new Error("Failed to create internship assignment");
+                                res.status(200).json({ message: "Internship Assignment Created Successfully", data: createResult2.rows[0] });
+                            } catch (error) {
+                                res.status(500).json({ message: error.message });
+                            }
+                        } else {
+                            res.status(403).json({
+                                message: "Access Denied, Only Admin assign internshipassignment",
+                            });
                         }
-                    }else{
-                        res.status(403).json({
-                            message: "Access Denied, Only Admin assign internshipassignment",
-                        });
-                    }
                         break;
                     default:
                         res.status(400).json({ message: 'Invalid table' });
@@ -58,8 +55,8 @@ const dynamicController = async (req, res) => {
             case 'read':
                 // Handle read operation
                 switch (table) {
-                    case 'interns':
-                        if (Object.entries(column_values).length == 0) {
+                    case 'interns'://only admin can view all interns info
+                        if (Object.entries(column_values).length == 1) {
                             if (role_id == 1) {
 
                                 const readQuery1 = "SELECT * FROM Interns";
@@ -85,7 +82,7 @@ const dynamicController = async (req, res) => {
                         }
                         break;
                     case 'internshipassignments':
-                        if (Object.entries(column_values).length == 0) {
+                        if (Object.entries(column_values).length == 1) {
                             if (role_id == 1) {//admin only route
                                 const readQuery1 = "SELECT * FROM InternshipAssignments";
                                 const readResult1 = await pool.query(readQuery1);
@@ -105,7 +102,7 @@ const dynamicController = async (req, res) => {
                             const readResult2 = await pool.query(readQuery2, readQueryValue2);
                             res.status(200).json({
                                 message: "Data Retrieved Successfully",
-                                data: readResult2.rows[0]
+                                data: readResult2.rows
                             });
                         }
                         break;
@@ -120,56 +117,22 @@ const dynamicController = async (req, res) => {
                     case 'interns':
 
                         const { intern_id: internId1, full_name, university, start_date, end_date, user_id } = column_values
-                        if (!full_name || !university || !start_date || !end_date || !user_id || !internId1) {
-                            return res.status(400).json({ message: 'Missing required fields for interns' });
+                        if (!full_name || !university || !start_date || !end_date || !user_id || !internId1 || !user_id) {
+                            return res.status(400).json({ message: 'Missing  fields required  for interns' });
                         }
-                        const internDataQuery = "SELECT * FROM Intern WHERE intern_id=$1"
-                        const internValue = [internId1]
-                        const internDataResult = await pool.query(internDataQuery, internValue)
+                        const updateQuery1 = "UPDATE Interns SET full_name=$1, university=$2, start_date=$3,  end_date=$4 WHERE intern_id=$5 RETURNING *"
+                        const updateValues1 = [full_name, university, start_date, end_date, internId1]
+                        const updateResult1 = await pool.query(updateQuery1, updateValues1);
 
-                        const internData = internDataResult.rows[0]
-                        if (internData.start_date === start_date && internData.end_date === end_date) {
-                            if (role_id === 2) {//user can update only his info not enddate and start date
-                                const updateQuery1 = "UPDATE Interns SET full_name=$1, university=$2, start_date=$3,  end_date=$4 WHERE intern_id=$5 RETURNING *"
-                                const updateValues1 = [full_name, university, start_date, end_date, internId1]
-                                const updateResult1 = await pool.query(updateQuery1, updateValues1);
+                        if (updateResult1.rowCount == 0)
+                            return res.status(200).json({
+                                message: "Intern Not Found",
+                            });
 
-                                if (updateResult1.rowCount == 0)
-                                    return res.status(200).json({
-                                        message: "Intern Not Found",
-                                    });
-
-                                res.status(200).json({
-                                    message: "Data Updated Successfully",
-                                    data: updateResult1.rows[0]
-                                });
-                            } else {
-                                res.status(403).json({
-                                    message: "Access Denied, Only Intern can update his info",
-                                });
-                            }
-                        } else if (internData.full_name === full_name && internData.university === university) {
-                            if (role_id === 1) {//admin can update only start and end date and not interns personal info
-                                const updateQuery1 = "UPDATE Interns SET full_name=$1, university=$2, start_date=$3, end_date=$4 WHERE intern_id=$5 RETURNING *"
-                                const updateValues1 = [full_name, university, start_date, end_date, internId1]
-                                const updateResult1 = await pool.query(updateQuery1, updateValues1);
-
-                                if (updateResult1.rowCount == 0)
-                                    return res.status(200).json({
-                                        message: "Intern Not Found",
-                                    });
-
-                                res.status(200).json({
-                                    message: "Data Updated Successfully",
-                                    data: updateResult1.rows[0]
-                                });
-                            }
-                            else {
-                                res.status(403).json({
-                                    message: "Access Denied, Only admin  can update start and end date of internship info",
-                                });
-                            }
-                        }
+                        res.status(200).json({
+                            message: "Data Updated Successfully",
+                            data: updateResult1.rows[0]
+                        });
                         break;
                     case 'internshipassignments':
                         if (role_id === 1) {//only admin can update the internshipassignment details 
@@ -207,16 +170,19 @@ const dynamicController = async (req, res) => {
                     case 'interns':
                         if (role_id === 1) {
                             const { intern_id: internId1 } = column_values;
-                            const deleteQuery1 = "DELETE FROM Interns WHERE intern_id=$1 RETURNING *";
+                            const deleteQuery1 = "DELETE FROM Internshipassignments WHERE intern_id=$1 RETURNING *";
                             const deleteValues1 = [internId1];
+                            const deleteQuery2 = "DELETE FROM Interns WHERE intern_id=$1 RETURNING *";
+                            const deleteValues2 = [internId1];
                             try {
 
                                 if (!internId1) {
                                     throw new Error("Invalid input data");
                                 }
                                 const deleteResult1 = await pool.query(deleteQuery1, deleteValues1);
+                                const deleteResult2 = await pool.query(deleteQuery2, deleteValues2);
 
-                                if (deleteResult1.rowCount == 0)
+                                if (deleteResult2.rowCount == 0)
                                     throw new Error("Intern Not Found");
 
                                 res.status(200).json({
