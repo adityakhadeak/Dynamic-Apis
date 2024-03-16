@@ -35,7 +35,7 @@ const dynamicController = async (req, res) => {
                     case 'internshipassignments':
                         if (role_id === 1) {
                             const { intern_id, task_description, due_date, user_id } = column_values;
-                            if (!intern_id || !task_description || !due_date || user_id) {
+                            if (!intern_id || !task_description || !due_date || !user_id) {
                                 return res.status(400).json({ message: "Invalid Input Missing input fields" })
                             }
                             const createQuery2 = "INSERT INTO InternshipAssignments ( intern_id, task_description, due_date) VALUES ($1, $2, $3) RETURNING *";

@@ -1,12 +1,13 @@
 const express = require('express')
 const { createRole, getRoles } = require('../controllers/roleController')
 const { isAdmin } = require('../middlewares/authorization')
+const jtoken = require('../middlewares/authentication')
 
 const routerRole=express()
 
 
-routerRole.post('/createrole',isAdmin,createRole)
+routerRole.post('/createrole',jtoken,isAdmin,createRole)
 
-routerRole.get('/getroles', isAdmin,getRoles)
+routerRole.get('/getroles',jtoken, isAdmin,getRoles)
 
 module.exports=routerRole
