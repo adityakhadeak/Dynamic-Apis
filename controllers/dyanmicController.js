@@ -1,61 +1,54 @@
-<<<<<<< HEAD
-=======
-const { json } = require('express');
 const bcrypt = require('bcrypt');
->>>>>>> 04a3550d3da6fdd87e94477649cea5e7104f35d2
 const pool = require('../database/db.js')
 
 const dynamicController = async (req, res) => {
     try {
         const { operation, table, column_values } = req.body
-        const { role_id } = req.role_id
-
+        const  role_id  = req.user.role_id
         switch (operation) {
-           case 'create':
-    // Handle create operation
-    switch (table) {
-        const bcrypt = require('bcrypt');
-
-case 'create':
-    // Handle create operation
-    switch (table) {
-        case 'interns':
-            const { full_name, university, start_date, end_date, user_id, password } = column_values;
-            const hashedPassword = await bcrypt.hash(password, 10); // Hash the password
-            const createQuery1 = "INSERT INTO Interns (full_name, university, start_date, end_date, user_id, password) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *";
-            const createValues1 = [full_name, university, start_date, end_date, user_id, hashedPassword];
-            try {
-                const createResult1 = await pool.query(createQuery1, createValues1);
-                if (createResult1.rowCount == 0) throw new Error("Failed to create intern");
-                res.status(200).json({ message: "Intern Created Successfully", data: createResult1.rows[0] });
-            } catch (error) {
-                res.status(500).json({ message: error.message });
-            }
-            break;
-        case 'internshipassignments':
-            const { assignment_id, intern_id, task_description, due_date } = column_values;
-            const createQuery2 = "INSERT INTO InternshipAssignments (assignment_id, intern_id, task_description, due_date) VALUES ($1, $2, $3, $4) RETURNING *";
-            const createValues2 = [assignment_id, intern_id, task_description, due_date];
-            try {
-                const createResult2 = await pool.query(createQuery2, createValues2);
-                if (createResult2.rowCount == 0) throw new Error("Failed to create internship assignment");
-                res.status(200).json({ message: "Internship Assignment Created Successfully", data: createResult2.rows[0] });
-            } catch (error) {
-                res.status(500).json({ message: error.message });
-            }
-            break;
-        default:
-            res.status(400).json({ message: 'Invalid table' });
-            break;
-    }
-            break;
-    default:
-            res.status(400).json({ message: 'Invalid table' });
-            break;
-    }
-    break;
-
-
+            case 'create':
+                // Handle create operation
+                switch (table) {
+                    case 'interns':
+                        if(role_id==2){
+                        const { full_name, university, start_date, end_date, user_id } = column_values;
+                        const createQuery1 = "INSERT INTO Interns (full_name, university, start_date, end_date, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING *";
+                        const createValues1 = [full_name, university, start_date, end_date, user_id];
+                        try {
+                            const createResult1 = await pool.query(createQuery1, createValues1);
+                            if (createResult1.rowCount == 0) throw new Error("Failed to create intern");
+                            res.status(200).json({ message: "Intern Created Successfully", data: createResult1.rows[0] });
+                        } catch (error) {
+                            res.status(500).json({ message: error.message });
+                        }
+                    }else{
+                        return res.status(403).json({
+                             message: "Access Denied, Only Intern can fill intern details",
+                        });
+                    }
+                    break;
+                    case 'internshipassignments':
+                        if(role_id===1){
+                        const { assignment_id, intern_id, task_description, due_date } = column_values;
+                        const createQuery2 = "INSERT INTO InternshipAssignments (assignment_id, intern_id, task_description, due_date) VALUES ($1, $2, $3, $4) RETURNING *";
+                        const createValues2 = [assignment_id, intern_id, task_description, due_date];
+                        try {
+                            const createResult2 = await pool.query(createQuery2, createValues2);
+                            if (createResult2.rowCount == 0) throw new Error("Failed to create internship assignment");
+                            res.status(200).json({ message: "Internship Assignment Created Successfully", data: createResult2.rows[0] });
+                        } catch (error) {
+                            res.status(500).json({ message: error.message });
+                        }
+                    }else{
+                        return res.status(403).json({
+                            message: "Access Denied, Only Admin Assignments",
+                        });
+                    }
+                        break;
+                    default:
+                        res.status(400).json({ message: 'Invalid table' });
+                        break;
+                }
             case 'read':
                 // Handle read operation
                 switch (table) {
@@ -175,9 +168,9 @@ case 'create':
                     case 'internshipassignments':
                         if (role_id === 1) {//only admin can update the internshipassignment details 
                             const { assignment_id, intern_id: internId2, task_description, due_date } = column_values
-                            if(!assignment_id || !internId2 ||!task_description||!due_date){
-                                return res.status(400).json({message: "Invalid Input Missing input fields"})
-                           }
+                            if (!assignment_id || !internId2 || !task_description || !due_date) {
+                                return res.status(400).json({ message: "Invalid Input Missing input fields" })
+                            }
                             const updateQuery2 = "UPDATE InternshipAssignments SET task_description=$1, due_date=$2 WHERE assignment_id=$3 RETURNING *"
                             const updateValues2 = [task_description, due_date, assignment_id]
                             const updateResult2 = await pool.query(updateQuery2, updateValues2);
