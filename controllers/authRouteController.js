@@ -1,23 +1,20 @@
 const pool = require('../database/db.js')
-const { jtoken } = require('../middlewares/authentication.js')
+const bcrypt=require('bcrypt')
 const jwt = require('jsonwebtoken')
-const Key = require("../database/db");
 const { validationResult, body, param } = require('express-validator');
 
 const createUser = async (req, res) => {
 
     const { username, email, password, role_id } = req.body
-
+ console.log(username,email,password,role_id)
     try {
-
-
         const hashedPassword = await bcrypt.hash(password, 10)
 
 
         const isUserExistQuery = 'SELECT * FROM Users WHERE username = $1 OR email = $2'
         const isUserExistValues = [username, email]
         const isUserExistResult = await pool.query(isUserExistQuery, isUserExistValues)
-
+        console.log(isUserExistResult)
         if (isUserExistResult.rowCount != 0) {
             return res.status(409).json({
                 message: "User with this email or username already exists"
@@ -30,16 +27,18 @@ const createUser = async (req, res) => {
 
         const newUserResult = await pool.query(newUserQuery, newUserValues);
         const userId = newUserResult.rows[0].user_id
-
+        console.log(newUserResult)
         const userData = {
             user: {
-                userId,
+                user_id:userId,
                 username,
                 role_id
             }
         }
+        console.log(userData)
         const token = await jwt.sign(userData, process.env.JWT_SECRET)
 
+        console.log(token)
         res.status(201).json({
             message: "User Created Successfully",
             data: {
@@ -125,6 +124,35 @@ const getUsers = async (req, res) => {
     }
 }
 
+const getuserlogindetail = async (req, res) => {
+    const userId = req.params.user_id
+    if(userId!=req.user.user_id)
+    {
+        return res.status(403).json({
+            message:"Invalid User Token"
+        })
+    }
+    try {
+        const getUserQuery = 'SELECT * FROM Users WHERE user_id=$1'
+        const getUserValues = [userId]
+        const usersResult = await pool.query(getUserQuery, getUserValues)
+        const user = usersResult.rows[0]
+
+
+        delete user.password
+
+        res.status(200).json({
+            message: "Data fetched",
+            data: user
+        })
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({
+            message: "Internal server error",
+            error
+        })
+    }
+}
 
 const updateUserLoginDetails = async (req, res) => {
 
@@ -143,7 +171,7 @@ const updateUserLoginDetails = async (req, res) => {
     }
 
     const { user_id } = req.params
-    if (user_id != req.user.userId) {
+    if (user_id != req.user.user_id) {
         return res.status(403).json({
             message: "Invalid User Token",
         })
@@ -194,16 +222,15 @@ const updateUserLoginDetails = async (req, res) => {
 }
 
 const deleteUser = async (req, res) => {
-    const validationRules=[
+    const validationRules = [
         param('user_id', "User ID should be numeric").isNumeric().toInt()
     ]
-    await Promise.all(validationRules.map(validation=>validation.run(req)))
+    await Promise.all(validationRules.map(validation => validation.run(req)))
 
-    const errors=validationResult(req)
+    const errors = validationResult(req)
 
-    if(!errors.isEmpty())
-    {
-        return res.status(400).json({errors:errors.array()})
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() })
     }
 
     const { user_id } = req.params
@@ -213,38 +240,36 @@ const deleteUser = async (req, res) => {
         })
     }
 
-    let userDetail={}
+    let userDetail = {}
     try {
         const allUserQuery = "SELECT * FROM Users WHERE user_id = $1";
-        const queryValue=[user_id];
-        const allUserResult= await pool.query(allUserQuery,queryValue);
-        if(allUserResult.rowCount===0 )
-        {
-           return  res.status(404).json({
-                message:"User not Found"
+        const queryValue = [user_id];
+        const allUserResult = await pool.query(allUserQuery, queryValue);
+        if (allUserResult.rowCount === 0) {
+            return res.status(404).json({
+                message: "User not Found"
             })
         }
-        const role_id=allUserResult.rows[0].role_id;
+        const role_id = allUserResult.rows[0].role_id;
 
-        if(role_id==2)
-        {
+        if (role_id == 2) {
             const deleteStudentQuery1 = "DELETE FROM Intern WHERE user_id = $1 RETURNING *";
-            const deleteStudentResult1 = await pool.query(deleteStudentQuery1,queryValue);
-            userDetail={...userDetail,internshipDetail:{...deleteStudentResult1.rows[0]}}
-            const queryValue2=[userDetail.intern_id]
+            const deleteStudentResult1 = await pool.query(deleteStudentQuery1, queryValue);
+            userDetail = { ...userDetail, internshipDetail: { ...deleteStudentResult1.rows[0] } }
+            const queryValue2 = [userDetail.intern_id]
             const deleteStudentQuery2 = "DELETE FROM InternshipAssignment WHERE intern_id = $1 RETURNING *";
-            const deleteStudentResult2 = await pool.query(deleteStudentQuery2,queryValue2);
-            userDetail={...userDetail,assignmentDetails:{...deleteStudentResult2.rows[0]}}
+            const deleteStudentResult2 = await pool.query(deleteStudentQuery2, queryValue2);
+            userDetail = { ...userDetail, assignmentDetails: { ...deleteStudentResult2.rows[0] } }
         }
-       
 
-        const deleteUserQuery="DELETE FROM Users WHERE user_id = $1 RETURNING *";
-        const deleteUserResult = await pool.query(deleteUserQuery,queryValue);
-        userDetail={...userDetail,...deleteUserResult.rows[0]}
+
+        const deleteUserQuery = "DELETE FROM Users WHERE user_id = $1 RETURNING *";
+        const deleteUserResult = await pool.query(deleteUserQuery, queryValue);
+        userDetail = { ...userDetail, ...deleteUserResult.rows[0] }
         delete userDetail["password"]
         res.status(200).json({
-            message:"User deleted successfully",
-            data:userDetail
+            message: "User deleted successfully",
+            data: userDetail
         })
 
     } catch (error) {
@@ -258,4 +283,4 @@ const deleteUser = async (req, res) => {
 
 
 
-module.exports = { loginUser, createUser, getUsers,updateUserLoginDetails,deleteUser }
+module.exports = { loginUser, createUser, getUsers, updateUserLoginDetails, deleteUser,getuserlogindetail }
