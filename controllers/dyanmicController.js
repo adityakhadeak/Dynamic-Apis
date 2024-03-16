@@ -7,22 +7,51 @@ const dynamicController = async (req, res) => {
         const { role_id } = req.role_id
 
         switch (operation) {
-            case 'create':
-                const { full_name, university, start_date, end_date, user_id } = column_values
-                const createQuery = "INSERT INTO Interns (full_name, university, start_date, end_date, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING *"
-                const createValues = [full_name, university, start_date, end_date, user_id]
-                const createResult = await pool.query(createQuery, createValues)
+           case 'create':
+    // Handle create operation
+    switch (table) {
+        case 'interns':
+            const { full_name, university, start_date, end_date, user_id } = column_values;
+            const createQuery1 = "INSERT INTO Interns (full_name, university, start_date, end_date, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING *";
+            const createValues1 = [full_name, university, start_date, end_date, user_id];
+            try {
+                const createResult1 = await pool.query(createQuery1, createValues1);
 
-                if (createResult.rowCount == 0)
-                    return res.status(200).json({
-                        message: "Intern Not Created",
-                    });
+                if (createResult1.rowCount == 0)
+                    throw new Error("Failed to create intern");
 
                 res.status(200).json({
                     message: "Intern Created Successfully",
-                    data: createResult.rows[0]
+                    data: createResult1.rows[0]
                 });
-                break;
+            } catch (error) {
+                res.status(500).json({ message: error.message });
+            }
+            break;
+        case 'internshipassignments':
+            const { assignment_id, intern_id, task_description, due_date } = column_values;
+            const createQuery2 = "INSERT INTO InternshipAssignments (assignment_id, intern_id, task_description, due_date) VALUES ($1, $2, $3, $4) RETURNING *";
+            const createValues2 = [assignment_id, intern_id, task_description, due_date];
+            try {
+                const createResult2 = await pool.query(createQuery2, createValues2);
+
+                if (createResult2.rowCount == 0)
+                    throw new Error("Failed to create internship assignment");
+
+                res.status(200).json({
+                    message: "Internship Assignment Created Successfully",
+                    data: createResult2.rows[0]
+                });
+            } catch (error) {
+                res.status(500).json({ message: error.message });
+            }
+            break;
+        default:
+            res.status(400).json({ message: 'Invalid table' });
+            break;
+    }
+    break;
+
 
             case 'read':
                 // Handle read operation
