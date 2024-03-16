@@ -1,3 +1,4 @@
+const { body } = require('express-validator')
 const pool = require('../database/db.js')
 
 const dynamicController = async (req, res) => {
@@ -13,6 +14,9 @@ const dynamicController = async (req, res) => {
                     case 'interns':
                         if (role_id === 2) {
                             const { full_name, university, start_date, end_date, user_id } = column_values;
+                            if (!full_name || !university || !start_date || !end_date || !user_id) {
+                                return res.status(400).json({ message: 'Missing  fields required  for interns' });
+                            }
                             const createQuery1 = "INSERT INTO Interns (full_name, university, start_date, end_date, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING *";
                             const createValues1 = [full_name, university, start_date, end_date, user_id];
                             try {
@@ -31,6 +35,9 @@ const dynamicController = async (req, res) => {
                     case 'internshipassignments':
                         if (role_id === 1) {
                             const { intern_id, task_description, due_date, user_id } = column_values;
+                            if (!intern_id || !task_description || !due_date || user_id) {
+                                return res.status(400).json({ message: "Invalid Input Missing input fields" })
+                            }
                             const createQuery2 = "INSERT INTO InternshipAssignments ( intern_id, task_description, due_date) VALUES ($1, $2, $3) RETURNING *";
                             const createValues2 = [intern_id, task_description, due_date];
                             try {
@@ -58,7 +65,9 @@ const dynamicController = async (req, res) => {
                     case 'interns'://only admin can view all interns info
                         if (Object.entries(column_values).length == 1) {
                             if (role_id == 1) {
-
+                                if((column_values.user_id=="")){
+                                    res.status(400).json({message:"missing user_id"})
+                                }
                                 const readQuery1 = "SELECT * FROM Interns";
                                 const readResult1 = await pool.query(readQuery1);
                                 res.status(200).json({
@@ -72,9 +81,16 @@ const dynamicController = async (req, res) => {
                             }
                         } else {//open to all admin and intern
                             const { intern_id } = column_values
+                            if((column_values.user_id=="" ||intern_id=="")){
+                                res.status(400).json({message:"missing user_id"})
+                            }
                             const readQuery2 = "SELECT * FROM Interns WHERE intern_id=$1";
                             const readQueryValue2 = [intern_id]
                             const readResult2 = await pool.query(readQuery2, readQueryValue2);
+                            if(readResult2.rowCount===0)
+                            {
+                                return res.status(404).json({message:"Intern Not Found"})
+                            }
                             res.status(200).json({
                                 message: "Data Retrieved Successfully",
                                 data: readResult2.rows[0]
@@ -84,6 +100,9 @@ const dynamicController = async (req, res) => {
                     case 'internshipassignments':
                         if (Object.entries(column_values).length == 1) {
                             if (role_id == 1) {//admin only route
+                                if((column_values.user_id=="")){
+                                    res.status(400).json({message:"missing user_id"})
+                                }
                                 const readQuery1 = "SELECT * FROM InternshipAssignments";
                                 const readResult1 = await pool.query(readQuery1);
                                 res.status(200).json({
@@ -96,10 +115,19 @@ const dynamicController = async (req, res) => {
                                 });
                             }
                         } else {//open to all admin and intern
-                            const { intern_id } = column_values
-                            const readQuery2 = "SELECT * FROM InternshipAssignments WHERE intern_id=$1";
-                            const readQueryValue2 = [intern_id]
+                            const { assignment_id } = column_values
+
+                            if(assignment_id==""){
+                              return  res.status(400).json({message:"missing user_id"})
+
+                            }
+                            const readQuery2 = "SELECT * FROM InternshipAssignments WHERE assignment_id=$1";
+                            const readQueryValue2 = [assignment_id]
                             const readResult2 = await pool.query(readQuery2, readQueryValue2);
+                            if(readResult2.rowCount===0)
+                            {
+                                return res.status(404).json({message:"Intern Not Found"})
+                            }
                             res.status(200).json({
                                 message: "Data Retrieved Successfully",
                                 data: readResult2.rows

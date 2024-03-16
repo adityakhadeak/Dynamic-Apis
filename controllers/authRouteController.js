@@ -5,6 +5,20 @@ const { validationResult, body, param } = require('express-validator');
 
 const createUser = async (req, res) => {
 
+    const validationRules = [
+        body('username',"username cannot be empty").notEmpty().isString().escape(),
+        body('email',"Enter a valid email address").notEmpty().isEmail().normalizeEmail(),
+        body('password',"Password must be of atleast 7 characters").notEmpty().isString().isLength({min:7}),
+        body('role_id').notEmpty().isNumeric().toInt()
+    ];
+
+    await Promise.all(validationRules.map(validation => validation.run(req)))
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() })
+    }
+
     const { username, email, password, role_id } = req.body
  console.log(username,email,password,role_id)
     try {
@@ -60,6 +74,17 @@ const createUser = async (req, res) => {
 
 const loginUser = async (req, res) => {
 
+    const validationRules = [
+        body('username',"Username cannot be empty").notEmpty().isString().escape(),
+        body('password').notEmpty().isString(),
+    ];
+
+    await Promise.all(validationRules.map(validation => validation.run(req)))
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() })
+    }
     const { username, password } = req.body
 
     try {
