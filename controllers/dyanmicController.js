@@ -4,52 +4,56 @@ const pool = require('../database/db.js')
 const dynamicController = async (req, res) => {
     try {
         const { operation, table, column_values } = req.body
-        const  role_id  = req.user.role_id
+        const role_id = req.user.role_id
         switch (operation) {
-           case 'create':
-    // Handle create operation
-    switch (table) {
-        const bcrypt = require('bcrypt');
-
-case 'create':
-    // Handle create operation
-    switch (table) {
-        case 'interns':
-            const { full_name, university, start_date, end_date, user_id, password } = column_values;
-            const hashedPassword = await bcrypt.hash(password, 10); // Hash the password
-            const createQuery1 = "INSERT INTO Interns (full_name, university, start_date, end_date, user_id, password) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *";
-            const createValues1 = [full_name, university, start_date, end_date, user_id, hashedPassword];
-            try {
-                const createResult1 = await pool.query(createQuery1, createValues1);
-                if (createResult1.rowCount == 0) throw new Error("Failed to create intern");
-                res.status(200).json({ message: "Intern Created Successfully", data: createResult1.rows[0] });
-            } catch (error) {
-                res.status(500).json({ message: error.message });
-            }
-            break;
-        case 'internshipassignments':
-            const { assignment_id, intern_id, task_description, due_date } = column_values;
-            const createQuery2 = "INSERT INTO InternshipAssignments (assignment_id, intern_id, task_description, due_date) VALUES ($1, $2, $3, $4) RETURNING *";
-            const createValues2 = [assignment_id, intern_id, task_description, due_date];
-            try {
-                const createResult2 = await pool.query(createQuery2, createValues2);
-                if (createResult2.rowCount == 0) throw new Error("Failed to create internship assignment");
-                res.status(200).json({ message: "Internship Assignment Created Successfully", data: createResult2.rows[0] });
-            } catch (error) {
-                res.status(500).json({ message: error.message });
-            }
-            break;
-        default:
-            res.status(400).json({ message: 'Invalid table' });
-            break;
-    }
-            break;
-    default:
-            res.status(400).json({ message: 'Invalid table' });
-            break;
-    }
-    break;
-
+            case 'create':
+            // Handle create operation
+            case 'create':
+                // Handle create operation
+                switch (table) {
+                    case 'interns':
+                        if(role_id===2)
+                        {
+                        const { full_name, university, start_date, end_date, user_id } = column_values;
+                        const createQuery1 = "INSERT INTO Interns (full_name, university, start_date, end_date, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING *";
+                        const createValues1 = [full_name, university, start_date, end_date, user_id];
+                        try {
+                            const createResult1 = await pool.query(createQuery1, createValues1);
+                            if (createResult1.rowCount == 0) throw new Error("Failed to create intern");
+                            res.status(200).json({ message: "Intern Created Successfully", data: createResult1.rows[0] });
+                        } catch (error) {
+                            res.status(500).json({ message: error.message });
+                        }
+                    }else{
+                        res.status(403).json({
+                            message: "Access Denied, Only intern can add internship info",
+                        });
+                    }
+                        break;
+                    case 'internshipassignments':
+                        if(role_id===1)
+                        {
+                        const { assignment_id, intern_id, task_description, due_date } = column_values;
+                        const createQuery2 = "INSERT INTO InternshipAssignments (assignment_id, intern_id, task_description, due_date) VALUES ($1, $2, $3, $4) RETURNING *";
+                        const createValues2 = [assignment_id, intern_id, task_description, due_date];
+                        try {
+                            const createResult2 = await pool.query(createQuery2, createValues2);
+                            if (createResult2.rowCount == 0) throw new Error("Failed to create internship assignment");
+                            res.status(200).json({ message: "Internship Assignment Created Successfully", data: createResult2.rows[0] });
+                        } catch (error) {
+                            res.status(500).json({ message: error.message });
+                        }
+                    }else{
+                        res.status(403).json({
+                            message: "Access Denied, Only Admin assign internshipassignment",
+                        });
+                    }
+                        break;
+                    default:
+                        res.status(400).json({ message: 'Invalid table' });
+                        break;
+                }
+                break;
 
             case 'read':
                 // Handle read operation
