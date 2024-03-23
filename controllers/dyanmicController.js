@@ -62,13 +62,17 @@ const dynamicController = async (req, res) => {
             case 'read':
                 // Handle read operation
                 switch (table) {
-                    case 'interns'://only admin can view all interns info
+                    case 'interns':
+                        // Only admin can view all interns info
                         if (Object.entries(column_values).length == 1) {
                             if (role_id == 1) {
-                                if((column_values.user_id=="")){
-                                    res.status(400).json({message:"missing user_id"})
+                                if (column_values.user_id == "") {
+                                    res.status(400).json({ message: "missing user_id" })
                                 }
-                                const readQuery1 = "SELECT * FROM Interns";
+                                const readQuery1 = `
+                                SELECT Interns.*, Users.username AS user_name, Users.email AS user_email
+                                FROM Interns 
+                                INNER JOIN Users ON Interns.user_id = Users.user_id`;
                                 const readResult1 = await pool.query(readQuery1);
                                 res.status(200).json({
                                     message: "Data Retrieved Successfully",
@@ -79,17 +83,20 @@ const dynamicController = async (req, res) => {
                                     message: "Access Denied, Only Admin can view all interns",
                                 });
                             }
-                        } else {//open to all admin and intern
+                        } else { // Open to all admin and intern
                             const { intern_id } = column_values
-                            if((column_values.user_id=="" ||intern_id=="")){
-                                res.status(400).json({message:"missing user_id"})
+                            if (column_values.user_id == "" || intern_id == "") {
+                                res.status(400).json({ message: "missing user_id" })
                             }
-                            const readQuery2 = "SELECT * FROM Interns WHERE intern_id=$1";
+                            const readQuery2 = `
+                            SELECT Interns.*, Users.username AS user_name, Users.email AS user_email
+                            FROM Interns
+                            INNER JOIN Users ON Interns.user_id = Users.user_id
+                            WHERE Interns.intern_id=$1`;
                             const readQueryValue2 = [intern_id]
                             const readResult2 = await pool.query(readQuery2, readQueryValue2);
-                            if(readResult2.rowCount===0)
-                            {
-                                return res.status(404).json({message:"Intern Not Found"})
+                            if (readResult2.rowCount === 0) {
+                                return res.status(404).json({ message: "Intern Not Found" })
                             }
                             res.status(200).json({
                                 message: "Data Retrieved Successfully",
@@ -98,12 +105,16 @@ const dynamicController = async (req, res) => {
                         }
                         break;
                     case 'internshipassignments':
+                        // Only admin can view all internship assignments info
                         if (Object.entries(column_values).length == 1) {
-                            if (role_id == 1) {//admin only route
-                                if((column_values.user_id=="")){
-                                    res.status(400).json({message:"missing user_id"})
+                            if (role_id == 1) {
+                                if (column_values.user_id == "") {
+                                    res.status(400).json({ message: "missing user_id" })
                                 }
-                                const readQuery1 = "SELECT * FROM InternshipAssignments";
+                                const readQuery1 = `
+                                        SELECT InternshipAssignments.*, Interns.full_name AS intern_name, Interns.university AS intern_university
+                                        FROM InternshipAssignments
+                                        INNER JOIN Interns ON InternshipAssignments.intern_id = Interns.intern_id`;
                                 const readResult1 = await pool.query(readQuery1);
                                 res.status(200).json({
                                     message: "Data Retrieved Successfully",
@@ -111,26 +122,27 @@ const dynamicController = async (req, res) => {
                                 });
                             } else {
                                 res.status(403).json({
-                                    message: "Access Denied, Only Admin can view all internshipassignment",
+                                    message: "Access Denied, Only Admin can view all internship assignments",
                                 });
                             }
-                        } else {//open to all admin and intern
+                        } else { // Open to all admin and intern
                             const { assignment_id } = column_values
-
-                            if(assignment_id==""){
-                              return  res.status(400).json({message:"missing user_id"})
-
+                            if (assignment_id == "") {
+                                res.status(400).json({ message: "missing assignment_id" })
                             }
-                            const readQuery2 = "SELECT * FROM InternshipAssignments WHERE assignment_id=$1";
+                            const readQuery2 = `
+                                    SELECT InternshipAssignments.*, Interns.full_name AS intern_name, Interns.university AS intern_university
+                                    FROM InternshipAssignments
+                                    INNER JOIN Interns ON InternshipAssignments.intern_id = Interns.intern_id
+                                    WHERE InternshipAssignments.assignment_id=$1`;
                             const readQueryValue2 = [assignment_id]
                             const readResult2 = await pool.query(readQuery2, readQueryValue2);
-                            if(readResult2.rowCount===0)
-                            {
-                                return res.status(404).json({message:"Intern Not Found"})
+                            if (readResult2.rowCount === 0) {
+                                return res.status(404).json({ message: "Internship Assignment Not Found" })
                             }
                             res.status(200).json({
                                 message: "Data Retrieved Successfully",
-                                data: readResult2.rows
+                                data: readResult2.rows[0]
                             });
                         }
                         break;
