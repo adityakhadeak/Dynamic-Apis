@@ -1,6 +1,7 @@
 const express=require('express')
 const dynamicController = require('../controllers/dyanmicController.js');
 const jtoken = require('../middlewares/authentication.js');
+const dynamicController1 = require('../controllers/dynamicController1.js');
 
 const router=express();
 
@@ -26,5 +27,6 @@ const router=express();
 
 
 router.post('/data',jtoken,dynamicController);
+router.post('/dataread',jtoken,dynamicController1);
 
 module.exports=router
